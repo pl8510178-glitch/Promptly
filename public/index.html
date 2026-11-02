@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827"><meta name="description" content="A secure prompt workspace for learning, software development, and image-editing prompts.">
+  <title>Promptly — AI Prompt Workspace</title><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <section class="auth-screen" id="authScreen" aria-labelledby="authTitle">
+    <div class="auth-brand"><span class="brand-mark">p<span>✳</span></span><span>promptly</span></div>
+    <div class="auth-card">
+      <div class="auth-eyebrow">YOUR AI WORKSPACE</div>
+      <h1 id="authTitle">Welcome back</h1>
+      <p class="auth-subtitle" id="authSubtitle">Sign in to continue to your prompt studio.</p>
+      <form id="authForm" novalidate>
+        <label class="auth-field hidden" id="nameField">Your name<input name="name" autocomplete="name" placeholder="e.g. Alex Morgan" maxlength="80"></label>
+        <label class="auth-field">Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+        <label class="auth-field">Password<input name="password" type="password" autocomplete="current-password" placeholder="At least 10 characters" required minlength="10" maxlength="128"></label>
+        <p class="auth-error" id="authError" role="alert"></p>
+        <button class="primary-button auth-submit" id="authSubmit" type="submit">Sign in <span>↗</span></button>
+      </form>
+      <p class="auth-switch"><span id="authSwitchText">New to Promptly?</span> <button type="button" id="authSwitch">Create an account</button></p>
+      <div class="auth-security">🔒 Passwords are securely hashed. Your prompts are private to your account.</div>
+    </div>
+    <div class="auth-footer">Made for curious minds and thoughtful builders</div>
+  </section>
+
+  <div class="shell hidden" id="appShell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#" aria-label="Promptly home"><span class="brand-mark">p<span>✳</span></span><span>promptly</span></a>
+      <div class="workspace-label">WORKSPACE</div>
+      <button class="nav-item active" id="studioNav"><span class="nav-icon">✳</span><span>Prompt studio</span></button>
+      <button class="nav-item" id="savedNav"><span class="nav-icon">▤</span><span>Saved prompts</span></button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-tip"><span class="tip-spark">✦</span><strong>Better context.<br>Better outcomes.</strong><p>Promptly helps you explain what you need before you ask AI.</p></div>
+      <div class="profile"><button type="button" class="avatar-edit-button" id="avatarEditButton" title="Add or change profile photo" aria-label="Add or change profile photo"><span class="avatar" id="userAvatar">P</span><img class="avatar-image hidden" id="userAvatarImage" alt="Profile photo"><span class="avatar-camera" aria-hidden="true">⌕</span></button><input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><span class="profile-identity"><strong id="userName">Personal workspace</strong><small id="userEmail">Student · Developer</small></span><button class="profile-menu" id="signOutButton" title="Sign out" aria-label="Sign out">↪</button></div>
+    </aside>
+
+    <header class="topbar">
+      <div class="breadcrumbs"><span>Workspace</span><i>/</i><strong id="breadcrumbCurrent">Prompt studio</strong></div>
+      <div class="top-actions"><div class="top-note"><span class="status-dot" id="statusDot"></span><span id="statusText">Checking AI availability…</span></div><span class="top-divider"></span><button class="help-button" id="helpButton" aria-label="Help">?</button></div>
+    </header>
+
+    <main class="main-content">
+      <section class="hero" id="intro">
+        <div class="eyebrow"><span>✳</span> YOUR AI WORKSPACE</div>
+        <h1>Make your next<br><em>prompt work harder.</em></h1>
+        <p class="hero-copy">Choose a path, add the details that matter, and let Promptly shape them into a prompt you can use.</p>
+      </section>
+
+      <section class="workspace" aria-label="Prompt builder">
+        <div class="stepper" aria-label="Progress"><div class="step active" id="step1"><span>01</span><i>Choose a path</i></div><div class="step-line"></div><div class="step" id="step2"><span>02</span><i>Add context</i></div><div class="step-line"></div><div class="step" id="step3"><span>03</span><i>Build & run</i></div></div>
+
+        <div class="panel choose-panel" id="choosePanel">
+          <div class="panel-heading"><div><div class="overline">YOUR PROMPT WORKSPACE</div><h2>What are you working on?</h2><p>Choose a workspace, or pick up where you left off.</p></div><button class="primary-button new-prompt-button" id="newPromptButton">New prompt <span>＋</span></button></div>
+          <div class="stats-grid"><div class="stat-card"><span>Saved prompts</span><strong id="promptStat">0</strong></div><div class="stat-card"><span>AI runs</span><strong id="runStat">0</strong></div><div class="stat-card"><span>Prompt versions</span><strong id="versionStat">0</strong></div></div>
+          <div class="mode-grid mode-grid-three">
+            <button class="mode-card" data-mode="study"><span class="mode-icon study-icon">✎</span><span class="mode-title">Learning & study</span><span class="mode-desc">Understand difficult topics, practice for exams, and get feedback that helps you improve.</span><span class="mode-link">Open study workspace <b>↗</b></span></button>
+            <button class="mode-card" data-mode="code"><span class="mode-icon code-icon">&lt;/&gt;</span><span class="mode-title">Software development</span><span class="mode-desc">Debug issues, plan features, and review code with the right technical context.</span><span class="mode-link">Open developer workspace <b>↗</b></span></button>
+            <button class="mode-card" data-mode="image"><span class="mode-icon image-prompt-icon">▧</span><span class="mode-title">Image prompt builder</span><span class="mode-desc">Describe an edit or a new image and get a clear prompt to use in your image tool.</span><span class="mode-link">Build an image prompt <b>↗</b></span></button>
+          </div>
+          <div class="saved-heading" id="savedHeading"><div><div class="overline">YOUR LIBRARY</div><h3>Saved prompts</h3></div><label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Search your prompts" aria-label="Search saved prompts"></label></div>
+          <div class="prompt-list" id="promptList" aria-live="polite"></div>
+          <div class="privacy-note"><span>✦</span> Your prompts are private to your account. Edit, version, run, and reuse them anytime.</div>
+        </div>
+
+        <div class="panel context-panel hidden" id="contextPanel">
+          <button class="back-link" id="backToModes">← Prompt studio</button>
+          <div class="panel-heading context-heading"><div><div class="overline" id="contextOverline">SESSION DETAILS</div><h2 id="contextTitle">Let’s make it specific.</h2><p id="contextSub">A few details help us make a prompt that sounds like you.</p></div><span class="heading-spark">✳</span></div>
+          <div class="task-picker" id="taskPicker"></div>
+          <form id="contextForm"><div class="question-grid" id="questionGrid"></div><p class="workflow-error hidden" id="workflowError" role="alert"></p><div class="form-footer"><span class="helper-text"><span>✦</span> A rough answer is a good starting point.</span><button class="primary-button" type="submit">Generate prompt <span>↗</span></button></div></form>
+        </div>
+
+        <div class="panel result-panel hidden" id="resultPanel">
+          <button class="back-link" id="backToContext">← Edit session details</button>
+          <div class="panel-heading result-heading"><div><div class="overline">AI-GENERATED DRAFT</div><h2>Your prompt is ready to shape.</h2><p>Edit it, save a version, or run it to see a live AI response.</p></div><span class="heading-spark">✳</span></div>
+          <p class="generation-notice hidden" id="generationNotice" role="status"></p>
+          <label class="title-field">Prompt title<input id="promptTitle" maxlength="120" placeholder="Give this prompt a useful name"></label>
+          <div class="prompt-meta"><span class="meta-pill" id="modePill">✎ STUDY PROMPT</span><span class="editable-note"><span>●</span> Editable prompt</span></div>
+          <textarea id="promptOutput" spellcheck="true" aria-label="Editable generated prompt"></textarea>
+          <div class="result-footer"><div class="why-note"><span>✦</span><div><strong id="saveState">Not saved yet</strong><small id="whyText">Save this prompt to keep it in your private library.</small></div></div><div class="result-actions"><button class="secondary-button" id="saveButton">Save prompt</button><button class="secondary-button" id="runButton">Try prompt with AI ↗</button><button class="primary-button copy-button" id="copyButton"><span class="copy-icon">▢</span> Copy</button></div></div>
+          <div class="model-result hidden" id="modelResult"><div class="model-result-heading"><strong>AI response</strong><span id="runModelLabel"></span><button type="button" id="clearResponse">Clear</button></div><div id="modelResponse" aria-live="polite"></div></div>
+          <div class="history-tools"><label>Version history<select id="versionPicker" aria-label="Prompt versions"><option value="">Latest version</option></select></label><button type="button" class="secondary-button" id="restoreVersionButton" disabled>Restore selected</button><span class="history-count" id="versionCount"></span></div>
+          <div class="run-history" id="runHistory"></div>
+        </div>
+      </section>
+      <footer><span>Built for curious minds and thoughtful builders</span><span>Promptly <span id="year"></span></span></footer>
+    </main>
+
+    <aside class="insight-rail" aria-label="Workspace information">
+      <div class="rail-heading"><span>SESSION GUIDE</span><span class="rail-menu">···</span></div>
+      <div class="rail-card featured"><div class="rail-icon">✳</div><div class="overline">HOW IT WORKS</div><h2>Clarity first.<br>Then the prompt.</h2><p>Good AI results start with the right context. We help you bring the important details together.</p></div>
+      <div class="rail-section"><div class="rail-section-title">YOUR SESSION</div><div class="rail-step"><span class="rail-step-number">1</span><span><strong>Choose your focus</strong><small>Study, software, or image prompts</small></span></div><div class="rail-step"><span class="rail-step-number">2</span><span><strong>Share the context</strong><small>Answer a few focused questions</small></span></div><div class="rail-step"><span class="rail-step-number">3</span><span><strong>Generate & refine</strong><small>Edit your prompt and run it</small></span></div></div>
+      <div class="rail-bottom"><div class="connection-card"><span class="status-dot" id="railStatusDot"></span><span><strong>AI availability</strong><small id="railStatusText">Checking setup</small></span></div><div class="rail-footnote" id="railFootnote">When you generate a prompt, your description is sent to the configured AI provider. Avoid including passwords or sensitive personal information.</div></div>
+    </aside>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

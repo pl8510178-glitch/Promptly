@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+node_modules
+.git
+data
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+README.md
+docs
