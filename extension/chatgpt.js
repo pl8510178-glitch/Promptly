@@ -79,7 +79,7 @@
         <div class="head"><div class="brand"><span class="mark" aria-hidden="true">✳</span><span>Promptly</span></div><button class="close" type="button" aria-label="Close Promptly">×</button></div>
         <label for="rough-prompt">What do you want ChatGPT to do?</label>
         <textarea id="rough-prompt" maxlength="10000" placeholder="Write your rough prompt…"></textarea>
-        <div class="voice-row"><button class="voice-button" type="button" aria-pressed="false"><span aria-hidden="true">🎙</span><span>Start voice input</span></button><span class="voice-key">Alt+Shift+P</span></div>
+        <div class="voice-row"><button class="voice-button" type="button" aria-pressed="false"><span aria-hidden="true">🎙</span><span>Start voice input</span></button><span class="voice-key">F8</span></div>
         <p class="voice-privacy">Voice recognition uses Chrome’s speech service and may process audio online.</p>
         <p class="hint">Promptly will refine this and send it in your current ChatGPT conversation.</p>
         <p class="status" role="status" aria-live="polite"></p>
@@ -210,7 +210,7 @@
         voiceBase = promptField.value.trim();
         voiceError = false;
         voiceCaptured = false;
-        status.textContent = 'Listening… Press Alt+Shift+P again to stop. Review your prompt before sending.';
+        status.textContent = 'Listening… Press F8 again to stop. Review your prompt before sending.';
         updateVoiceButton(true);
         recognition.onresult = event => {
           let finalText = '';
@@ -255,7 +255,7 @@
     }
     voiceButton.addEventListener('click', startVoiceInput);
     document.addEventListener('keydown', event => {
-      if (event.code !== 'KeyP' || !event.altKey || !event.shiftKey || event.ctrlKey || event.metaKey || event.repeat) return;
+      if (event.code !== 'F8' || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
       event.preventDefault();
       event.stopPropagation();
       startVoiceInput();
