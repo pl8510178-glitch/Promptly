@@ -31,13 +31,14 @@
       <div class="workspace-label">WORKSPACE</div>
       <button class="nav-item active" id="studioNav"><span class="nav-icon">✳</span><span>Prompt studio</span></button>
       <button class="nav-item" id="savedNav"><span class="nav-icon">▤</span><span>Saved prompts</span></button>
+      <button class="nav-item" id="extensionConnectButton"><span class="nav-icon">⊞</span><span>Browser extension</span></button>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-tip"><span class="tip-spark">✦</span><strong>Better context.<br>Better outcomes.</strong><p>Promptly helps you explain what you need before you ask AI.</p></div>
       <div class="profile"><button type="button" class="avatar-edit-button" id="avatarEditButton" title="Add or change profile photo" aria-label="Add or change profile photo"><span class="avatar" id="userAvatar">P</span><img class="avatar-image hidden" id="userAvatarImage" alt="Profile photo"><span class="avatar-camera" aria-hidden="true">⌕</span></button><input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><span class="profile-identity"><strong id="userName">Personal workspace</strong><small id="userEmail">Student · Developer</small></span><button class="profile-menu" id="signOutButton" title="Sign out" aria-label="Sign out">↪</button></div>
     </aside>
 
     <header class="topbar">
-      <div class="breadcrumbs"><span>Workspace</span><i>/</i><strong id="breadcrumbCurrent">Prompt studio</strong></div>
+      <div class="topbar-location"><button class="app-back-button" id="appBackButton" type="button" title="Go back" aria-label="Go back"><span aria-hidden="true">←</span></button><div class="breadcrumbs"><span>Workspace</span><i>/</i><strong id="breadcrumbCurrent">Prompt studio</strong></div></div>
       <div class="top-actions"><div class="top-note"><span class="status-dot" id="statusDot"></span><span id="statusText">Checking AI availability…</span></div><span class="top-divider"></span><button class="help-button" id="helpButton" aria-label="Help">?</button></div>
     </header>
 
@@ -45,20 +46,22 @@
       <section class="hero" id="intro">
         <div class="eyebrow"><span>✳</span> YOUR AI WORKSPACE</div>
         <h1>Make your next<br><em>prompt work harder.</em></h1>
-        <p class="hero-copy">Choose a path, add the details that matter, and let Promptly shape them into a prompt you can use.</p>
+        <p class="hero-copy">Write what you need in your own words. Promptly sharpens the request and opens ChatGPT to answer it.</p>
       </section>
 
       <section class="workspace" aria-label="Prompt builder">
         <div class="stepper" aria-label="Progress"><div class="step active" id="step1"><span>01</span><i>Choose a path</i></div><div class="step-line"></div><div class="step" id="step2"><span>02</span><i>Add context</i></div><div class="step-line"></div><div class="step" id="step3"><span>03</span><i>Build & run</i></div></div>
 
         <div class="panel choose-panel" id="choosePanel">
-          <div class="panel-heading"><div><div class="overline">YOUR PROMPT WORKSPACE</div><h2>What are you working on?</h2><p>Choose a workspace, or pick up where you left off.</p></div><button class="primary-button new-prompt-button" id="newPromptButton">New prompt <span>＋</span></button></div>
+          <div class="panel-heading"><div><div class="overline">YOUR PROMPT WORKSPACE</div><h2>What are you working on?</h2><p>Type it the way you’d normally ask. Promptly will improve it and open ChatGPT to answer.</p></div></div>
           <div class="stats-grid"><div class="stat-card"><span>Saved prompts</span><strong id="promptStat">0</strong></div><div class="stat-card"><span>AI runs</span><strong id="runStat">0</strong></div><div class="stat-card"><span>Prompt versions</span><strong id="versionStat">0</strong></div></div>
-          <div class="mode-grid mode-grid-three">
-            <button class="mode-card" data-mode="study"><span class="mode-icon study-icon">✎</span><span class="mode-title">Learning & study</span><span class="mode-desc">Understand difficult topics, practice for exams, and get feedback that helps you improve.</span><span class="mode-link">Open study workspace <b>↗</b></span></button>
-            <button class="mode-card" data-mode="code"><span class="mode-icon code-icon">&lt;/&gt;</span><span class="mode-title">Software development</span><span class="mode-desc">Debug issues, plan features, and review code with the right technical context.</span><span class="mode-link">Open developer workspace <b>↗</b></span></button>
-            <button class="mode-card" data-mode="image"><span class="mode-icon image-prompt-icon">▧</span><span class="mode-title">Image prompt builder</span><span class="mode-desc">Describe an edit or a new image and get a clear prompt to use in your image tool.</span><span class="mode-link">Build an image prompt <b>↗</b></span></button>
-          </div>
+          <form class="quick-ask" id="quickForm">
+            <label for="quickRequest"><span class="overline">QUICK ASK</span><strong>What do you need help with?</strong><small>Write a rough request. Promptly will polish it, then open ChatGPT with the improved prompt.</small></label>
+            <textarea id="quickRequest" name="request" maxlength="10000" rows="3" placeholder="e.g. Explain photosynthesis simply, then give me a short quiz." required></textarea>
+            <div class="quick-loading hidden" id="quickLoading" role="status" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Polishing your prompt</strong><small id="quickLoadingText">Gemini is refining your request. This usually takes a few seconds.</small></span></div>
+            <p class="workflow-error hidden" id="quickError" role="alert"></p>
+            <div class="quick-ask-footer"><span>Promptly improves it; ChatGPT answers it</span><button class="primary-button" id="quickSubmit" type="submit">Polish &amp; open ChatGPT <span>↗</span></button></div>
+          </form>
           <div class="saved-heading" id="savedHeading"><div><div class="overline">YOUR LIBRARY</div><h3>Saved prompts</h3></div><label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Search your prompts" aria-label="Search saved prompts"></label></div>
           <div class="prompt-list" id="promptList" aria-live="polite"></div>
           <div class="privacy-note"><span>✦</span> Your prompts are private to your account. Edit, version, run, and reuse them anytime.</div>
@@ -78,7 +81,7 @@
           <label class="title-field">Prompt title<input id="promptTitle" maxlength="120" placeholder="Give this prompt a useful name"></label>
           <div class="prompt-meta"><span class="meta-pill" id="modePill">✎ STUDY PROMPT</span><span class="editable-note"><span>●</span> Editable prompt</span></div>
           <textarea id="promptOutput" spellcheck="true" aria-label="Editable generated prompt"></textarea>
-          <div class="result-footer"><div class="why-note"><span>✦</span><div><strong id="saveState">Not saved yet</strong><small id="whyText">Save this prompt to keep it in your private library.</small></div></div><div class="result-actions"><button class="secondary-button" id="saveButton">Save prompt</button><button class="secondary-button" id="runButton">Try prompt with AI ↗</button><button class="primary-button copy-button" id="copyButton"><span class="copy-icon">▢</span> Copy</button></div></div>
+          <div class="result-footer"><div class="why-note"><span>✦</span><div><strong id="saveState">Not saved yet</strong><small id="whyText">Save this prompt to keep it in your private library.</small></div></div><div class="result-actions"><button class="secondary-button" id="saveButton">Save prompt</button><a class="secondary-button hidden" id="openChatGPTButton" target="_blank" rel="noopener noreferrer">Open in ChatGPT ↗</a><button class="secondary-button" id="runButton">Try prompt with AI ↗</button><button class="primary-button copy-button" id="copyButton"><span class="copy-icon">▢</span> Copy</button></div></div>
           <div class="model-result hidden" id="modelResult"><div class="model-result-heading"><strong>AI response</strong><span id="runModelLabel"></span><button type="button" id="clearResponse">Clear</button></div><div id="modelResponse" aria-live="polite"></div></div>
           <div class="history-tools"><label>Version history<select id="versionPicker" aria-label="Prompt versions"><option value="">Latest version</option></select></label><button type="button" class="secondary-button" id="restoreVersionButton" disabled>Restore selected</button><span class="history-count" id="versionCount"></span></div>
           <div class="run-history" id="runHistory"></div>
@@ -89,11 +92,20 @@
 
     <aside class="insight-rail" aria-label="Workspace information">
       <div class="rail-heading"><span>SESSION GUIDE</span><span class="rail-menu">···</span></div>
-      <div class="rail-card featured"><div class="rail-icon">✳</div><div class="overline">HOW IT WORKS</div><h2>Clarity first.<br>Then the prompt.</h2><p>Good AI results start with the right context. We help you bring the important details together.</p></div>
-      <div class="rail-section"><div class="rail-section-title">YOUR SESSION</div><div class="rail-step"><span class="rail-step-number">1</span><span><strong>Choose your focus</strong><small>Study, software, or image prompts</small></span></div><div class="rail-step"><span class="rail-step-number">2</span><span><strong>Share the context</strong><small>Answer a few focused questions</small></span></div><div class="rail-step"><span class="rail-step-number">3</span><span><strong>Generate & refine</strong><small>Edit your prompt and run it</small></span></div></div>
-      <div class="rail-bottom"><div class="connection-card"><span class="status-dot" id="railStatusDot"></span><span><strong>AI availability</strong><small id="railStatusText">Checking setup</small></span></div><div class="rail-footnote" id="railFootnote">When you generate a prompt, your description is sent to the configured AI provider. Avoid including passwords or sensitive personal information.</div></div>
+      <div class="rail-card featured"><div class="rail-icon">✳</div><div class="overline">HOW IT WORKS</div><h2>One request.<br>A sharper prompt.</h2><p>Describe what you need in your own words. Promptly makes it clearer before you continue in ChatGPT.</p></div>
+      <div class="rail-section"><div class="rail-section-title">YOUR FLOW</div><div class="rail-step"><span class="rail-step-number">1</span><span><strong>Write it naturally</strong><small>Start with a rough request</small></span></div><div class="rail-step"><span class="rail-step-number">2</span><span><strong>Promptly polishes it</strong><small>Your intent stays intact</small></span></div><div class="rail-step"><span class="rail-step-number">3</span><span><strong>Continue in ChatGPT</strong><small>Get the answer there</small></span></div></div>
+      <div class="rail-bottom"><div class="connection-card"><span class="status-dot" id="railStatusDot"></span><span><strong>Prompt improver</strong><small id="railStatusText">Checking setup</small></span></div><div class="rail-footnote" id="railFootnote">Your rough request is sent to Promptly’s configured AI to improve it. The polished prompt opens in ChatGPT. Avoid entering passwords or sensitive information.</div></div>
     </aside>
   </div>
+  <dialog class="extension-dialog" id="extensionDialog" aria-labelledby="extensionDialogTitle">
+    <form method="dialog" class="extension-dialog-close"><button class="dialog-close" aria-label="Close dialog">×</button></form>
+    <div class="overline">PROMPTLY FOR YOUR BROWSER</div><h2 id="extensionDialogTitle">Refine prompts without leaving your tab.</h2>
+    <p class="extension-dialog-copy">Connect the Promptly side panel to this account. Your AI provider key stays on the Promptly server; the extension receives a revocable, refinement-only connection token.</p>
+    <div class="extension-connection-status" id="extensionConnectionStatus" role="status">Checking connection…</div>
+    <div class="extension-token-block hidden" id="extensionTokenBlock"><label for="extensionToken">One-time connection token</label><div class="extension-token-row"><input id="extensionToken" readonly autocomplete="off"><button type="button" class="secondary-button" id="copyExtensionToken">Copy token</button></div><small>Paste this token into the extension settings. It is shown only once.</small></div>
+    <p class="workflow-error hidden" id="extensionDialogError" role="alert"></p>
+    <div class="extension-dialog-actions"><a href="/extension-guide.html" target="_blank" rel="noopener noreferrer" class="secondary-button">Extension setup guide ↗</a><button type="button" class="secondary-button hidden" id="revokeExtensionButton">Revoke connection</button><button type="button" class="primary-button" id="createExtensionTokenButton">Create connection token</button></div>
+  </dialog>
   <script src="/app.js"></script>
 </body>
 </html>

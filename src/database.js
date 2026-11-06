@@ -30,11 +30,18 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS sessions_expiry_idx ON sessions(expires_at);
 
+  CREATE TABLE IF NOT EXISTS extension_tokens (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+
   CREATE TABLE IF NOT EXISTS prompts (
     id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL CHECK(length(title) BETWEEN 1 AND 120),
-    mode TEXT NOT NULL CHECK(mode IN ('study','code','image')),
+    mode TEXT NOT NULL CHECK(mode IN ('study','code','image','general')),
     task TEXT NOT NULL,
     current_text TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -71,7 +78,7 @@ db.exec(`
 `);
 
 const promptTableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'prompts'").get()?.sql || '';
-if (!promptTableSql.includes("'image'")) {
+if (!promptTableSql.includes("'image'") || !promptTableSql.includes("'general'")) {
   db.exec(`
     PRAGMA foreign_keys = OFF;
     BEGIN IMMEDIATE;
@@ -79,7 +86,7 @@ if (!promptTableSql.includes("'image'")) {
       id INTEGER PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       title TEXT NOT NULL CHECK(length(title) BETWEEN 1 AND 120),
-      mode TEXT NOT NULL CHECK(mode IN ('study','code','image')),
+      mode TEXT NOT NULL CHECK(mode IN ('study','code','image','general')),
       task TEXT NOT NULL,
       current_text TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),

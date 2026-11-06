@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827"><title>Promptly browser extension setup</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .guide{max-width:760px;margin:48px auto;padding:0 24px 56px}.guide-brand{display:flex;align-items:center;gap:10px;color:#18212f;text-decoration:none;font:800 18px Manrope,sans-serif}.guide h1{font:750 clamp(34px,6vw,48px)/1.1 Manrope,sans-serif;letter-spacing:-1.8px;margin:44px 0 12px}.guide-lede{font-size:15px;color:#758194;line-height:1.75;max-width:620px}.guide-step{background:#fff;border:1px solid #e8ebf0;border-radius:12px;padding:21px 24px;margin:16px 0}.guide-step h2{font:700 17px Manrope,sans-serif;margin:0 0 8px}.guide-step p,.guide-step li{color:#667487;font-size:13px;line-height:1.75}.guide-step code{font:12px 'DM Mono',monospace;background:#f2f4f7;padding:3px 5px;border-radius:4px;color:#39485a;overflow-wrap:anywhere}.guide-step pre{overflow:auto;padding:14px;background:#151d29;color:#e8edf4;border-radius:8px;font:12px/1.65 'DM Mono',monospace}.guide-note{border-left:3px solid #77a58a;padding:10px 14px;background:#f0f6f2;color:#4a6553;font-size:12px;line-height:1.7}
+  </style>
+</head>
+<body>
+  <main class="guide">
+    <a class="guide-brand" href="/"><span class="brand-mark">p<span>✳</span></span><span>promptly</span></a>
+    <h1>Promptly, right beside your browser.</h1>
+    <p class="guide-lede">Use the Chrome side panel to refine prompts on any tab. Select text and right-click to send it to Promptly, copy the result, or open ChatGPT with the improved prompt.</p>
+    <section class="guide-step"><h2>1. Allow the extension to connect</h2><p>In your Promptly project, add this setting to <code>.env</code>. It limits browser API access to this Promptly extension.</p><pre>PROMPTLY_EXTENSION_ORIGIN=chrome-extension://filiepnajkdniickanglihboebcameoc</pre><p>Restart Promptly after saving. Keep your Gemini or OpenAI provider key only in the server’s <code>.env</code>.</p></section>
+    <section class="guide-step"><h2>2. Load the extension in Chrome</h2><ol><li>Open <code>chrome://extensions</code>.</li><li>Turn on <strong>Developer mode</strong>.</li><li>Choose <strong>Load unpacked</strong> and select the project’s <code>extension</code> folder.</li><li>Pin the Promptly icon if you want quick access. Click it to open the side panel.</li></ol></section>
+    <section class="guide-step"><h2>3. Connect your Promptly account</h2><ol><li>Sign in to Promptly and choose <strong>Browser extension</strong> in the left navigation.</li><li>Create a connection token and copy it. The token is displayed once.</li><li>In the extension side panel, open the gear settings. Enter the Promptly server address (usually <code>http://localhost:3000</code>) and paste the token.</li><li>Choose <strong>Connect securely</strong> and allow Chrome to connect to your Promptly server.</li></ol><p class="guide-note">If Promptly is running on another port, use that port in the server address. For a hosted Promptly server, use its HTTPS origin and set the same extension origin in the deployment environment.</p></section>
+    <section class="guide-step"><h2>4. Add Promptly inside ChatGPT</h2><ol><li>Open the ChatGPT conversation you want to continue and open Promptly’s side panel.</li><li>Choose <strong>Add Promptly to ChatGPT</strong>. The first time, allow access to chatgpt.com when Chrome asks.</li><li>Type your rough request into ChatGPT as usual.</li><li>Click the new <strong>✳ Refine &amp; send</strong> button beside ChatGPT’s Send button. Promptly replaces the rough draft with the refined prompt and sends it in the same conversation.</li></ol><p>After this one-time setup, you can use the in-page button for each request without returning to the Promptly side panel.</p></section>
+    <section class="guide-step"><h2>Privacy and access</h2><p>The extension reads the ChatGPT message box only after you click its refine button. It can also read text you explicitly select and send through the context-menu action. Its connection token can call only Promptly’s refinement and connection-status endpoints; it cannot read your saved prompt library. Revoke the token any time from Promptly → Browser extension. Tokens expire after 90 days. The AI provider key stays on the Promptly server.</p></section>
+  </main>
+</body>
+</html>

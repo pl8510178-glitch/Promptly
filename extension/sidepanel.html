@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Promptly</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">p<span>✳</span></span><span>promptly</span></div>
+    <span class="connection-dot" id="connectionDot" aria-hidden="true"></span>
+    <button type="button" id="settingsToggle" class="icon-button" aria-label="Connection settings" aria-expanded="false" aria-controls="settingsPanel">⚙</button>
+  </header>
+  <main>
+    <section class="intro">
+      <span class="eyebrow">YOUR BROWSER COMPANION</span>
+      <h1>Make the ask<br><em>clearer.</em></h1>
+      <p>Write it naturally. Promptly sharpens it and sends it in your current ChatGPT conversation.</p>
+    </section>
+    <section class="chatgpt-shortcut card" aria-labelledby="chatDraftTitle">
+      <span class="eyebrow">PROMPTLY INSIDE CHATGPT</span>
+      <h2 id="chatDraftTitle">Refine before you send.</h2>
+      <p>Add a Promptly button beside ChatGPT’s send button. Then write normally and click it to refine and send in this conversation.</p>
+      <button class="button primary full" id="enableInlineButton" type="button">Add Promptly to ChatGPT</button>
+    </section>
+    <section id="settingsPanel" class="settings card" hidden aria-labelledby="settingsTitle">
+      <h2 id="settingsTitle">Connect your Promptly account</h2>
+      <p>Use the token created in Promptly → Browser extension. The token is stored in this browser and can be revoked from Promptly.</p>
+      <label for="serverUrl">Promptly server address</label>
+      <input id="serverUrl" type="url" inputmode="url" autocomplete="url" value="http://localhost:3000" placeholder="https://your-promptly.example">
+      <label for="connectionToken">Connection token</label>
+      <input id="connectionToken" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the one-time token">
+      <button class="button primary full" id="connectButton" type="button">Connect securely</button>
+      <p class="microcopy">Only Promptly’s prompt-refinement endpoint is available to this token. Your Gemini/OpenAI key is never stored here.</p>
+    </section>
+    <form id="refineForm" class="card compose">
+      <label for="roughPrompt"><span class="eyebrow">YOUR ROUGH PROMPT</span><strong>What do you want the AI to do?</strong></label>
+      <textarea id="roughPrompt" rows="6" maxlength="10000" placeholder="e.g. explain photosynthesis and give me a quiz at the end" required></textarea>
+      <div class="form-meta"><span id="charCount">0 / 10,000</span><span>Only this text is sent to Promptly.</span></div>
+      <p class="message" id="message" role="status" aria-live="polite" hidden></p>
+      <button class="button primary full" id="refineButton" type="submit"><span class="spark" aria-hidden="true">✳</span> Refine &amp; send in ChatGPT</button>
+    </form>
+    <footer><span class="privacy-mark" aria-hidden="true">◈</span> Your words go to your Promptly server for refinement. Avoid entering passwords or sensitive information.</footer>
+  </main>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

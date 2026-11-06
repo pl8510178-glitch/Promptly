@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Promptly — Prompt Refiner",
+  "version": "1.0.0",
+  "description": "Refine and send rough prompts directly inside ChatGPT.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvL+k2PLkRkYfo8RDEjHxkUiBoxJQeJl+HGhnDqTDKoDUZH7k9VLU+ocr4EtattUD9tDXM8bFhavRHEYa5dm5dIBFgsBW1fRzSSaSuMAwFJ20fm12/bNWkdZ5BecERO4Goy15HhFvUwskJakHIzsGrdLrEou/Z6ujT2gQTEiI0Yerc5x/oz3wldsNBkPJI19mzSzUWvADL+YLuyAtklJUDku1/GFHJtuxYVxwnJePo2avH9LLte1hNF5Zz4Vu1yh07iFh//IaIHnSiRcXu5YQX/Tc0CugbbzpkPspmaDziCRUeG2gwGKqQc1VvJulKSb7z0/D0BEDo+1E9m03xONYOQIDAQAB",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "sidePanel", "contextMenus", "scripting"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "worker.js" },
+  "action": { "default_title": "Open Promptly" },
+  "side_panel": { "default_path": "sidepanel.html" }
+}

@@ -53,6 +53,14 @@ See [docs/DATABASE.md](docs/DATABASE.md) for the ER diagram, relationships, and 
 - `POST /api/prompts/:id/runs`, `DELETE /api/prompts/:id/runs/:runId` — save an AI run or remove one.
 - `POST /api/questions`, `POST /api/prompt` — guided intake and AI prompt generation.
 - `GET/PUT/DELETE /api/profile/avatar` — retrieve, set, or remove the signed-in user's profile photo.
+- `GET/POST/DELETE /api/extension-token` — create, inspect, or revoke the signed-in user's one-time browser extension connection token.
+- `GET /api/extension/status`, `POST /api/extension/refine` — scoped endpoints used by the Promptly browser extension.
+
+## Browser extension
+
+Promptly includes a Chrome Manifest V3 extension in [`extension/`](extension/). After one-time setup from its side panel, an inline **Refine & send** button appears beside ChatGPT's send button. Type a rough prompt in ChatGPT and use that control to refine and submit it in the same conversation. It can also accept selected text from the page context menu or refine text entered in the side panel. ChatGPT access is requested only when the user enables the in-page control. The extension token is scoped to prompt refinement, expires after 90 days, and can be revoked from the signed-in Promptly app. It never receives the AI provider key.
+
+To install and connect it, follow the [browser extension setup guide](http://localhost:3000/extension-guide.html) after starting Promptly. Set `PROMPTLY_EXTENSION_ORIGIN=chrome-extension://filiepnajkdniickanglihboebcameoc` in `.env`, restart the server, load the `extension` folder from `chrome://extensions` with Developer mode enabled, then create a token under **Browser extension** in Promptly and paste it into the side panel's settings. In the side panel, choose **Add Promptly to ChatGPT** once and allow access when Chrome asks. For a hosted instance, configure the same origin in the deployment environment and use the site's HTTPS address in extension settings.
 
 ## Course-project notes
 

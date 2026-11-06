@@ -1,4 +1,5 @@
 const http = require('node:http');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
@@ -122,7 +123,7 @@ async function askModel(instructions, input) {
     ? { model, messages: [{ role: 'system', content: instructions }, { role: 'user', content: input }] }
     : { model, instructions, input, store: false };
   let response;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     try {
       response = await fetch(endpoint, {
         method: 'POST',
@@ -130,10 +131,21 @@ async function askModel(instructions, input) {
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(60000)
       });
-    } catch {
-      throw new Error(`Could not reach the ${provider === 'gemini' ? 'Gemini' : 'OpenAI'} API. Check the server internet connection and try again.`);
+    } catch (error) {
+      const service = provider === 'gemini' ? 'Gemini' : 'OpenAI';
+      const code = error?.cause?.code || error?.code;
+      if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+        throw new Error(`Could not resolve the ${service} API address (${code}). Check DNS or your network, then restart Promptly.`);
+      }
+      if (code === 'ETIMEDOUT' || error?.name === 'TimeoutError') {
+        throw new Error(`The connection to the ${service} API timed out. Check your network or firewall, then try again.`);
+      }
+      if (code) {
+        throw new Error(`Could not connect to the ${service} API (${code}). Check your network or firewall, then try again.`);
+      }
+      throw new Error(`Could not reach the ${service} API${error?.message ? `: ${error.message}` : ''}. Check the server internet connection and try again.`);
     }
-    if (response.status !== 503 || attempt === 2) break;
+    if (response.status !== 503 || attempt === 3) break;
     await new Promise(resolve => setTimeout(resolve, 800 * (2 ** attempt) + Math.random() * 300));
   }
   const data = await response.json().catch(() => ({}));
@@ -173,9 +185,9 @@ function validatePromptInput(body, partial = false) {
   if (!partial || body.content !== undefined) {
     if (typeof body.content !== 'string' || !body.content.trim() || body.content.length > 20000) return 'Prompt must be 1–20,000 characters.';
   }
-  if (!partial || body.mode !== undefined) if (!['study', 'code', 'image'].includes(body.mode)) return 'Choose a valid prompt workspace.';
+  if (!partial || body.mode !== undefined) if (!['study', 'code', 'image', 'general'].includes(body.mode)) return 'Choose a valid prompt workspace.';
   if (!partial || body.task !== undefined) {
-    const tasks = body.mode === 'study' ? ['explain', 'practice', 'feedback'] : body.mode === 'image' ? ['edit', 'create'] : ['debug', 'build', 'review'];
+    const tasks = body.mode === 'study' ? ['explain', 'practice', 'feedback'] : body.mode === 'image' ? ['edit', 'create'] : body.mode === 'general' ? ['ask'] : ['debug', 'build', 'review'];
     if (!tasks.includes(body.task)) return 'Choose a valid task for this workspace.';
   }
   return null;
@@ -197,6 +209,24 @@ function originAllowed(req) {
   if (!origin) return true;
   try { return new URL(origin).host === req.headers.host; } catch { return false; }
 }
+function extensionCors(req, res, methods = 'POST, OPTIONS') {
+  const allowed = process.env.PROMPTLY_EXTENSION_ORIGIN;
+  if (!allowed || req.headers.origin !== allowed) return false;
+  res.setHeader('access-control-allow-origin', allowed);
+  res.setHeader('access-control-allow-methods', methods);
+  res.setHeader('access-control-allow-headers', 'Authorization, Content-Type');
+  res.setHeader('access-control-max-age', '600');
+  res.setHeader('vary', 'Origin');
+  return true;
+}
+function hashExtensionToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
+const extensionAttempts = new Map();
+function extensionRateLimited(userId) {
+  const now = Date.now();
+  const recent = (extensionAttempts.get(userId) || []).filter(time => now - time < 60_000);
+  if (recent.length >= 20) { extensionAttempts.set(userId, recent); return true; }
+  recent.push(now); extensionAttempts.set(userId, recent); return false;
+}
 function apiError(res, error) {
   const status = error.status || (error.name === 'TimeoutError' ? 504 : 500);
   return json(res, status, { error: error.message || 'The request could not be completed.' });
@@ -212,6 +242,31 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/session') {
       const user = getUser(req);
       return json(res, 200, { user: user ? userView(user) : null });
+    }
+    if (url.pathname === '/api/extension/refine' || url.pathname === '/api/extension/status') {
+      const isStatus = url.pathname.endsWith('/status');
+      if (!extensionCors(req, res, isStatus ? 'GET, OPTIONS' : 'POST, OPTIONS')) return json(res, 403, { error: 'This browser extension is not allowed to connect. Check PROMPTLY_EXTENSION_ORIGIN.' });
+      if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+      if (req.method !== (isStatus ? 'GET' : 'POST')) return json(res, 405, { error: 'Method not allowed.' });
+      const bearer = req.headers.authorization?.match(/^Bearer ([A-Za-z0-9_-]{40,100})$/)?.[1];
+      const user = bearer && db.prepare(`SELECT users.id, users.name, users.email FROM extension_tokens JOIN users ON users.id = extension_tokens.user_id WHERE extension_tokens.token_hash = ? AND extension_tokens.expires_at > ?`).get(hashExtensionToken(bearer), new Date().toISOString());
+      if (!user) return json(res, 401, { error: 'Extension connection expired or revoked. Reconnect it from Promptly.' });
+      if (isStatus) return json(res, 200, { connected: true, name: user.name });
+      if (extensionRateLimited(user.id)) return json(res, 429, { error: 'Promptly extension is being used too quickly. Wait a minute and try again.' });
+      const body = await readBody(req);
+      const roughRequest = typeof body.request === 'string' ? body.request.trim() : '';
+      if (!roughRequest) return json(res, 400, { error: 'Enter a rough prompt first.' });
+      if (roughRequest.length > 10000) return json(res, 413, { error: 'Keep your request under 10,000 characters.' });
+      const instructions = [
+        'You are Promptly, an AI prompt improver. The user has supplied a rough request that will be sent to another AI afterward.',
+        'Silently rewrite it as a clear, specific prompt that preserves the user’s intent. Add useful structure and ask for missing details only when essential; do not invent facts, context, or capabilities.',
+        'For learning requests, preserve the requested format and order. For software requests, ask for relevant code or errors when needed and do not invent details about an unseen codebase. For image editing, describe desired edits and what should remain unchanged.',
+        'Do not answer the request. Return only the final polished prompt with no preamble, labels, quotation marks, or answer.'
+      ].join('\n');
+      const prompt = (await askModel(instructions, roughRequest)).trim();
+      if (!prompt) throw Object.assign(new Error('The AI returned an empty prompt. Please try again.'), { status: 502 });
+      if (prompt.length > 20000) throw Object.assign(new Error('The improved prompt is too long. Please shorten your request and try again.'), { status: 413 });
+      return json(res, 200, { prompt });
     }
     if (req.method === 'POST' && url.pathname.startsWith('/api/auth/')) {
       if (!originAllowed(req)) return json(res, 403, { error: 'Request origin is not allowed.' });
@@ -252,6 +307,23 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/') && !user) return json(res, 401, { error: 'Sign in to continue.' });
     if (req.method !== 'GET' && url.pathname.startsWith('/api/') && !originAllowed(req)) return json(res, 403, { error: 'Request origin is not allowed.' });
 
+    if (url.pathname === '/api/extension-token') {
+      if (req.method === 'GET') {
+        const connection = db.prepare('SELECT expires_at AS expiresAt FROM extension_tokens WHERE user_id = ? AND expires_at > ?').get(user.id, new Date().toISOString());
+        return json(res, 200, { connected: Boolean(connection), expiresAt: connection?.expiresAt || null });
+      }
+      if (req.method === 'POST') {
+        const token = crypto.randomBytes(32).toString('base64url');
+        const expiresAt = new Date(Date.now() + 90 * 86400_000).toISOString();
+        db.prepare(`INSERT INTO extension_tokens (user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash, expires_at=excluded.expires_at, created_at=excluded.created_at`).run(user.id, hashExtensionToken(token), expiresAt);
+        return json(res, 201, { token, expiresAt });
+      }
+      if (req.method === 'DELETE') {
+        db.prepare('DELETE FROM extension_tokens WHERE user_id = ?').run(user.id);
+        return json(res, 200, { connected: false });
+      }
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/questions') {
       const body = await readBody(req);
       if (!['study', 'code', 'image'].includes(body.mode)) return json(res, 400, { error: 'Choose a valid prompt workspace.' });
@@ -290,6 +362,31 @@ const server = http.createServer(async (req, res) => {
         }
         throw error;
       }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/quick-prompt') {
+      const body = await readBody(req);
+      const roughRequest = typeof body.request === 'string' ? body.request.trim() : '';
+      if (!roughRequest) return json(res, 400, { error: 'Type what you need help with first.' });
+      if (roughRequest.length > 10000) return json(res, 413, { error: 'Keep your request under 10,000 characters.' });
+      const instructions = [
+        'You are Promptly, an AI prompt improver. The user has supplied a rough request that will be sent to ChatGPT afterward.',
+        'First silently rewrite it as a clear, specific prompt that preserves the user’s intent. Add useful structure and ask for missing details only when essential; do not invent facts, context, or capabilities.',
+        'For learning requests, preserve the learner’s requested format and order. For software requests, ask for relevant code or errors when needed and do not invent details about an unseen codebase. For image editing requests, describe the desired edits and what should remain unchanged.',
+        'Do not answer or perform the user’s request. Do not mention that you are improving a prompt. Return only the final, polished prompt, with no preamble, labels, quotation marks, or answer.'
+      ].join('\n');
+      const prompt = (await askModel(instructions, roughRequest)).trim();
+      if (!prompt) throw Object.assign(new Error('The AI returned an empty prompt. Please try again.'), { status: 502 });
+      if (prompt.length > 20000) throw Object.assign(new Error('The improved prompt is too long to save. Please shorten your request and try again.'), { status: 413 });
+      const title = roughRequest.replace(/\s+/g, ' ').slice(0, 116).trim() || 'Quick AI request';
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        const created = db.prepare('INSERT INTO prompts (user_id, title, mode, task, current_text) VALUES (?, ?, ?, ?, ?)').run(user.id, title, 'general', 'ask', prompt);
+        const promptId = Number(created.lastInsertRowid);
+        addPromptVersion(promptId, prompt);
+        const saved = getOwnedPrompt(promptId, user.id);
+        db.exec('COMMIT');
+        return json(res, 200, { prompt: promptView(saved) });
+      } catch (error) { db.exec('ROLLBACK'); throw error; }
     }
     if (req.method === 'GET' && url.pathname === '/api/prompts') {
       const search = (url.searchParams.get('q') || '').trim().slice(0, 100);
