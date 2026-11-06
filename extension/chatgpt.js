@@ -41,12 +41,12 @@
       <style>
         :host{all:initial;color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
         *{box-sizing:border-box}
-        .launcher{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;min-width:148px;height:58px;padding:0 19px;border:2px solid #fff;border-radius:999px;background:#246447;color:#fff;box-shadow:0 8px 28px rgba(20,48,36,.34),0 0 0 2px #246447;font-size:15px;font-weight:750;letter-spacing:.1px;cursor:pointer;transition:transform .16s,background .16s,box-shadow .16s}
-        .launcher::before{content:"";position:absolute;inset:-7px;border:2px solid rgba(52,115,90,.55);border-radius:999px;pointer-events:none;animation:attention-ring 2.4s ease-out 3}
-        .launcher-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.18);font-size:19px;line-height:1}
-        .launcher:hover{transform:translateY(-2px);background:#194d35;box-shadow:0 11px 30px rgba(20,48,36,.4),0 0 0 2px #194d35}
+        .launcher{position:relative;display:grid;place-items:center;width:50px;height:50px;padding:0;border:2px solid #fff;border-radius:50%;background:#246447;color:#fff;box-shadow:0 7px 23px rgba(20,48,36,.38),0 0 0 2px #246447;font-size:25px;line-height:1;cursor:grab;touch-action:none;user-select:none;transition:transform .16s,background .16s,box-shadow .16s}
+        .launcher::before{content:"";position:absolute;inset:-7px;border:2px solid rgba(52,115,90,.58);border-radius:50%;pointer-events:none;animation:attention-ring 2.4s ease-out 3}
+        .launcher:active{cursor:grabbing}
+        .launcher:hover{transform:scale(1.07);background:#194d35;box-shadow:0 10px 28px rgba(20,48,36,.44),0 0 0 2px #194d35}
         button:focus-visible,textarea:focus-visible{outline:3px solid #84b897;outline-offset:3px}
-        .panel{position:absolute;right:0;bottom:72px;width:min(360px,calc(100vw - 28px));padding:17px;border:1px solid #e3e8e5;border-radius:16px;background:#fff;color:#1c2932;box-shadow:0 18px 55px rgba(20,32,28,.22);}
+        .panel{position:fixed;left:0;top:0;width:min(360px,calc(100vw - 28px));padding:17px;border:1px solid #e3e8e5;border-radius:16px;background:#fff;color:#1c2932;box-shadow:0 18px 55px rgba(20,32,28,.22);}
         .panel[hidden]{display:none}
         .head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
         .brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;letter-spacing:-.2px}
@@ -66,7 +66,7 @@
         .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes attention-ring{0%{transform:scale(.96);opacity:.75}75%,100%{transform:scale(1.16);opacity:0}}
-        @media(max-width:520px){:host{right:14px!important;bottom:14px!important}.panel{width:min(360px,calc(100vw - 28px));right:0;bottom:70px}.launcher{min-width:142px;height:54px;padding:0 16px;font-size:14px}}
+        @media(max-width:520px){.panel{width:min(360px,calc(100vw - 28px))}.launcher{width:48px;height:48px;font-size:23px}}
         @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
       </style>
       <section class="panel" aria-label="Promptly prompt refiner" hidden>
@@ -77,7 +77,7 @@
         <p class="status" role="status" aria-live="polite"></p>
         <button class="send" type="button"><span aria-hidden="true">✳</span><span>Refine &amp; send</span></button>
       </section>
-      <button class="launcher" type="button" aria-label="Open Promptly prompt refiner" aria-expanded="false" title="Open Promptly"><span class="launcher-icon" aria-hidden="true">✳</span><span>Promptly</span></button>
+      <button class="launcher" type="button" aria-label="Open Promptly prompt refiner. Drag to move." aria-expanded="false" title="Promptly — drag to move, click to open">✳</button>
     `;
     document.body.append(host);
 
@@ -88,20 +88,105 @@
     const submit = shadow.querySelector('.send');
     const submitLabel = submit.querySelector('span:last-child');
     const status = shadow.querySelector('.status');
+    let pointerStart = null;
+    let dragged = false;
+    let ignoreClick = false;
+    let hasCustomPosition = false;
+    let savedPosition = null;
+
+    function clamp(value, low, high) { return Math.max(low, Math.min(value, high)); }
+    function setBubblePosition(left, top, persist = false) {
+      const rect = host.getBoundingClientRect();
+      const maxLeft = Math.max(10, window.innerWidth - rect.width - 10);
+      const maxTop = Math.max(10, window.innerHeight - rect.height - 10);
+      const x = clamp(left, 10, maxLeft);
+      const y = clamp(top, 10, maxTop);
+      host.style.left = `${x}px`;
+      host.style.top = `${y}px`;
+      host.style.right = 'auto';
+      host.style.bottom = 'auto';
+      hasCustomPosition = true;
+      savedPosition = { xRatio: maxLeft ? x / maxLeft : 1, yRatio: maxTop ? y / maxTop : 1 };
+      if (persist) chrome.storage.local.set({ promptlyBubblePosition: savedPosition }).catch(() => {});
+    }
+    function placePanel() {
+      if (panel.hidden) return;
+      const anchor = host.getBoundingClientRect();
+      const card = panel.getBoundingClientRect();
+      const margin = 14;
+      const maxLeft = Math.max(margin, window.innerWidth - card.width - margin);
+      const maxTop = Math.max(margin, window.innerHeight - card.height - margin);
+      const left = clamp(anchor.right - card.width, margin, maxLeft);
+      const above = anchor.top - card.height - 12;
+      const top = clamp(above < margin ? anchor.bottom + 12 : above, margin, maxTop);
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
+    }
 
     function setOpen(open) {
       panel.hidden = !open;
       launcher.setAttribute('aria-expanded', String(open));
       launcher.setAttribute('aria-label', open ? 'Close Promptly prompt refiner' : 'Open Promptly prompt refiner');
       launcher.title = open ? 'Close Promptly' : 'Open Promptly';
-      if (open) promptField.focus();
+      if (open) { placePanel(); promptField.focus(); }
       else launcher.focus();
     }
-    launcher.addEventListener('click', () => setOpen(panel.hidden));
+    launcher.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      const rect = host.getBoundingClientRect();
+      pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+      dragged = false;
+      launcher.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    launcher.addEventListener('pointermove', event => {
+      if (!pointerStart || event.pointerId !== pointerStart.id) return;
+      const dx = event.clientX - pointerStart.x;
+      const dy = event.clientY - pointerStart.y;
+      if (!dragged && Math.hypot(dx, dy) < 5) return;
+      dragged = true;
+      setBubblePosition(pointerStart.left + dx, pointerStart.top + dy);
+      placePanel();
+    });
+    function finishDrag(event) {
+      if (!pointerStart || event.pointerId !== pointerStart.id) return;
+      if (launcher.hasPointerCapture(event.pointerId)) launcher.releasePointerCapture(event.pointerId);
+      if (dragged) {
+        ignoreClick = true;
+        if (savedPosition) chrome.storage.local.set({ promptlyBubblePosition: savedPosition }).catch(() => {});
+        setTimeout(() => { ignoreClick = false; }, 300);
+      }
+      pointerStart = null;
+    }
+    launcher.addEventListener('pointerup', finishDrag);
+    launcher.addEventListener('pointercancel', finishDrag);
+    launcher.addEventListener('click', () => {
+      if (ignoreClick) { ignoreClick = false; return; }
+      setOpen(panel.hidden);
+    });
     close.addEventListener('click', () => setOpen(false));
     shadow.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !panel.hidden) { event.stopPropagation(); setOpen(false); }
+      if (event.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        event.preventDefault();
+        const rect = host.getBoundingClientRect();
+        const step = 20;
+        setBubblePosition(rect.left + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0), rect.top + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0), true);
+        placePanel();
+      }
     });
+    window.addEventListener('resize', () => {
+      if (hasCustomPosition && savedPosition) {
+        setBubblePosition(savedPosition.xRatio * Math.max(10, window.innerWidth - host.offsetWidth - 10), savedPosition.yRatio * Math.max(10, window.innerHeight - host.offsetHeight - 10));
+      }
+      placePanel();
+    });
+    chrome.storage.local.get('promptlyBubblePosition').then(({ promptlyBubblePosition }) => {
+      if (!promptlyBubblePosition) return;
+      const maxLeft = Math.max(10, window.innerWidth - host.offsetWidth - 10);
+      const maxTop = Math.max(10, window.innerHeight - host.offsetHeight - 10);
+      setBubblePosition((promptlyBubblePosition.xRatio ?? 1) * maxLeft, (promptlyBubblePosition.yRatio ?? 1) * maxTop);
+    }).catch(() => {});
 
     submit.addEventListener('click', async () => {
       const roughPrompt = promptField.value.trim();
