@@ -56,6 +56,12 @@
         label{display:block;margin:0 0 8px;color:#52605a;font-size:12px;font-weight:650}
         textarea{display:block;width:100%;min-height:128px;max-height:38vh;resize:vertical;padding:11px 12px;border:1px solid #dce4df;border-radius:10px;background:#fff;color:#1c2932;font:13px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
         textarea::placeholder{color:#9aa59f}
+        .voice-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
+        .voice-button{display:flex;align-items:center;gap:7px;min-height:32px;padding:6px 10px;border:1px solid #dce4df;border-radius:8px;background:#f8faf8;color:#285d48;font-size:11px;font-weight:650;cursor:pointer}
+        .voice-button:hover{background:#edf5ef;border-color:#b7d0bf}
+        .voice-button[aria-pressed="true"]{border-color:#bd4a4a;background:#fff1f1;color:#a22e2e}
+        .voice-key{color:#78857d;font:10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace}
+        .voice-privacy{margin:6px 1px 0;color:#7f8a84;font-size:9px;line-height:1.4}
         .hint{margin:7px 1px 12px;color:#89948e;font-size:10px;line-height:1.45}
         .status{min-height:18px;margin:0 0 8px;color:#54745f;font-size:11px;line-height:1.45}
         .status:empty{display:none}
@@ -73,6 +79,8 @@
         <div class="head"><div class="brand"><span class="mark" aria-hidden="true">✳</span><span>Promptly</span></div><button class="close" type="button" aria-label="Close Promptly">×</button></div>
         <label for="rough-prompt">What do you want ChatGPT to do?</label>
         <textarea id="rough-prompt" maxlength="10000" placeholder="Write your rough prompt…"></textarea>
+        <div class="voice-row"><button class="voice-button" type="button" aria-pressed="false"><span aria-hidden="true">🎙</span><span>Start voice input</span></button><span class="voice-key">Alt+Shift+P</span></div>
+        <p class="voice-privacy">Voice recognition uses Chrome’s speech service and may process audio online.</p>
         <p class="hint">Promptly will refine this and send it in your current ChatGPT conversation.</p>
         <p class="status" role="status" aria-live="polite"></p>
         <button class="send" type="button"><span aria-hidden="true">✳</span><span>Refine &amp; send</span></button>
@@ -88,11 +96,18 @@
     const submit = shadow.querySelector('.send');
     const submitLabel = submit.querySelector('span:last-child');
     const status = shadow.querySelector('.status');
+    const voiceButton = shadow.querySelector('.voice-button');
+    const voiceButtonLabel = voiceButton.querySelector('span:last-child');
     let pointerStart = null;
     let dragged = false;
     let ignoreClick = false;
     let hasCustomPosition = false;
     let savedPosition = null;
+    let recognition = null;
+    let isListening = false;
+    let voiceBase = '';
+    let voiceError = false;
+    let voiceCaptured = false;
 
     function clamp(value, low, high) { return Math.max(low, Math.min(value, high)); }
     function setBubblePosition(left, top, persist = false) {
@@ -124,6 +139,7 @@
     }
 
     function setOpen(open) {
+      if (!open && isListening) stopVoiceInput();
       panel.hidden = !open;
       launcher.setAttribute('aria-expanded', String(open));
       launcher.setAttribute('aria-label', open ? 'Close Promptly prompt refiner' : 'Open Promptly prompt refiner');
@@ -165,6 +181,88 @@
       setOpen(panel.hidden);
     });
     close.addEventListener('click', () => setOpen(false));
+
+    function updateVoiceButton(active) {
+      isListening = active;
+      voiceButton.setAttribute('aria-pressed', String(active));
+      voiceButtonLabel.textContent = active ? 'Stop listening' : 'Start voice input';
+    }
+    function stopVoiceInput() {
+      if (recognition && isListening) {
+        status.textContent = 'Finishing voice input…';
+        recognition.stop();
+      }
+    }
+    function startVoiceInput() {
+      if (isListening) { stopVoiceInput(); return; }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setOpen(true);
+        status.textContent = 'Voice input is not supported in this browser. Try the latest Chrome or type your prompt.';
+        return;
+      }
+      setOpen(true);
+      try {
+        recognition = new SpeechRecognition();
+        recognition.lang = document.documentElement.lang || navigator.language || 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        voiceBase = promptField.value.trim();
+        voiceError = false;
+        voiceCaptured = false;
+        status.textContent = 'Listening… Press Alt+Shift+P again to stop. Review your prompt before sending.';
+        updateVoiceButton(true);
+        recognition.onresult = event => {
+          let finalText = '';
+          let interimText = '';
+          for (let i = 0; i < event.results.length; i++) {
+            const transcript = event.results[i][0]?.transcript || '';
+            if (event.results[i].isFinal) finalText += `${transcript} `;
+            else interimText += `${transcript} `;
+          }
+          const recognized = [voiceBase, finalText.trim(), interimText.trim()].filter(Boolean).join(' ');
+          promptField.value = recognized.slice(0, 10000);
+          voiceCaptured ||= Boolean(finalText.trim());
+          if (interimText.trim()) status.textContent = `Listening… ${interimText.trim()}`;
+        };
+        recognition.onerror = event => {
+          voiceError = true;
+          const messages = {
+            'not-allowed': 'Microphone access was blocked. Allow microphone access for ChatGPT in Chrome, then try again.',
+            'service-not-allowed': 'Chrome blocked its speech recognition service.',
+            'no-speech': 'No speech was detected. Press the shortcut and try again.',
+            'audio-capture': 'No microphone is available. Check your microphone and try again.',
+            'network': 'Chrome’s speech service could not be reached. Check your internet connection.'
+          };
+          status.textContent = messages[event.error] || `Voice input stopped (${event.error}).`;
+        };
+        recognition.onend = () => {
+          const hadCapture = voiceCaptured;
+          recognition = null;
+          updateVoiceButton(false);
+          if (!voiceError) status.textContent = hadCapture
+            ? 'Voice added. Review or edit your prompt before sending.'
+            : 'No speech was detected. Try again.';
+        };
+        recognition.start();
+      } catch (error) {
+        recognition = null;
+        updateVoiceButton(false);
+        status.textContent = error.name === 'NotAllowedError'
+          ? 'Microphone access was blocked. Allow microphone access for ChatGPT, then try again.'
+          : 'Could not start voice input. Check your microphone permission and try again.';
+      }
+    }
+    voiceButton.addEventListener('click', startVoiceInput);
+    document.addEventListener('keydown', event => {
+      if (event.code !== 'KeyP' || !event.altKey || !event.shiftKey || event.ctrlKey || event.metaKey || event.repeat) return;
+      event.preventDefault();
+      event.stopPropagation();
+      startVoiceInput();
+    }, true);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && isListening) stopVoiceInput();
+    });
     shadow.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !panel.hidden) { event.stopPropagation(); setOpen(false); }
       if (event.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
@@ -190,6 +288,7 @@
 
     submit.addEventListener('click', async () => {
       const roughPrompt = promptField.value.trim();
+      if (isListening) stopVoiceInput();
       status.textContent = '';
       if (!roughPrompt) {
         status.textContent = 'Type a rough prompt first.';
