@@ -119,23 +119,13 @@ $('#connectButton').addEventListener('click', async () => {
   finally { button.disabled = false; button.textContent = 'Connect securely'; }
 });
 $('#enableInlineButton').addEventListener('click', async () => {
-  const button = $('#enableInlineButton'); button.disabled = true; button.textContent = 'Adding to ChatGPT…'; $('#message').hidden = true;
+  const button = $('#enableInlineButton'); button.disabled = true; button.textContent = 'Refreshing bubble…'; $('#message').hidden = true;
   try {
-    if (!config.token) throw new Error('Connect your Promptly account first using the gear button above.');
     const tab = await activeChatGPTTab();
-    const contentScriptId = 'promptly-chatgpt-inline';
-    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [contentScriptId] });
-    if (!existing.length) await chrome.scripting.registerContentScripts([{
-      id: contentScriptId,
-      matches: ['https://chatgpt.com/*'],
-      js: ['chatgpt.js'],
-      runAt: 'document_idle',
-      persistAcrossSessions: true
-    }]);
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['chatgpt.js'] });
-    showMessage('Promptly is now beside ChatGPT’s send button. Type a rough prompt there and click Refine & send.', 'success');
+    showMessage('Promptly’s floating bubble is available in this ChatGPT tab. It also appears automatically when you open ChatGPT.', 'success');
   } catch (error) { showMessage(error.message || 'Could not add Promptly to ChatGPT.'); }
-  finally { button.disabled = false; button.textContent = 'Add Promptly to ChatGPT'; }
+  finally { button.disabled = false; button.textContent = 'Refresh bubble in this ChatGPT tab'; }
 });
 $('#roughPrompt').addEventListener('input', () => { $('#charCount').textContent = `${$('#roughPrompt').value.length.toLocaleString()} / 10,000`; });
 form.addEventListener('submit', async (event) => {
