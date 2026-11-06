@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!request) throw new Error('Type a rough prompt first.');
     if (request.length > 10000) throw new Error('Keep your request under 10,000 characters.');
     const { promptlyBaseUrl = 'http://localhost:3000', promptlyToken = '' } = await chrome.storage.local.get(['promptlyBaseUrl', 'promptlyToken']);
-    if (!promptlyToken) throw new Error('Connect the Promptly side panel to your account first.');
+    if (!promptlyToken) throw new Error('One-time setup is needed: choose Connect securely in Promptly’s side panel. This browser will remember the connection for up to 90 days.');
     let response;
     try {
       response = await fetch(`${promptlyBaseUrl}/api/extension/refine`, {

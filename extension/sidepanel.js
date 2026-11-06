@@ -83,7 +83,7 @@ async function loadConnection() {
   config.baseUrl = saved.promptlyBaseUrl || 'http://localhost:3000';
   config.token = saved.promptlyToken || '';
   $('#serverUrl').value = config.baseUrl;
-  if (!config.token) { setConnected(false); $('#settingsPanel').hidden = false; $('#settingsToggle').setAttribute('aria-expanded', 'true'); return; }
+    if (!config.token) { setConnected(false); $('#settingsPanel').hidden = false; $('#settingsToggle').setAttribute('aria-expanded', 'true'); return; }
   try {
     const origin = `${new URL(config.baseUrl).origin}/*`;
     if (!await chrome.permissions.contains({ origins: [origin] })) throw new Error('Allow Promptly to connect using the settings button.');
@@ -114,7 +114,7 @@ $('#connectButton').addEventListener('click', async () => {
     $('#settingsPanel').hidden = true;
     $('#settingsToggle').setAttribute('aria-expanded', 'false');
     setConnected(true);
-    showMessage('Connected. Your prompts will now be refined by your Promptly server.', 'success');
+    showMessage('Connected. This browser remembers the connection for up to 90 days, so you do not need to reconnect each time.', 'success');
   } catch (error) { showMessage(error.message); setConnected(false); }
   finally { button.disabled = false; button.textContent = 'Connect securely'; }
 });
@@ -124,7 +124,7 @@ $('#enableInlineButton').addEventListener('click', async () => {
     const tab = await activeChatGPTTab();
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['chatgpt.js'] });
     showMessage('Promptly’s floating bubble is available in this ChatGPT tab. It also appears automatically when you open ChatGPT.', 'success');
-  } catch (error) { showMessage(error.message || 'Could not add Promptly to ChatGPT.'); }
+  } catch (error) { showMessage(error.message || 'Could not refresh the Promptly bubble.'); }
   finally { button.disabled = false; button.textContent = 'Refresh bubble in this ChatGPT tab'; }
 });
 $('#roughPrompt').addEventListener('input', () => { $('#charCount').textContent = `${$('#roughPrompt').value.length.toLocaleString()} / 10,000`; });
@@ -132,7 +132,7 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const request = $('#roughPrompt').value.trim();
   if (!request) return;
-  if (!config.token) { showMessage('Connect your Promptly account first, using the gear button above.'); $('#settingsPanel').hidden = false; $('#settingsToggle').setAttribute('aria-expanded', 'true'); return; }
+  if (!config.token) { showMessage('One-time setup: connect your Promptly account using the gear button. This browser will remember the connection for up to 90 days.'); $('#settingsPanel').hidden = false; $('#settingsToggle').setAttribute('aria-expanded', 'true'); return; }
   const button = $('#refineButton'); button.disabled = true; button.innerHTML = '<span class="spinner" aria-hidden="true">◌</span> Preparing ChatGPT…';
   $('#message').hidden = true;
   try {
